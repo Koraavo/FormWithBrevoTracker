@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FormsSubscriptionWithBrevoTracker</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="config.js"></script>
     <script src="https://cdn.brevo.com/js/sdk-loader.js" async></script>
 
     <script type="text/javascript">
-        const maKey = config.MA_KEY;
+        const maKey = "{{MA_KEY}}";  // Placeholder for MA_KEY
         // Initialize Brevo SDK
         window.Brevo = window.Brevo || [];
         Brevo.push([
