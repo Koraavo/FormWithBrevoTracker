@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FormsSubscriptionWithBrevoTracker</title>
     <link rel="stylesheet" href="styles.css">
+
+
     <script src="https://cdn.brevo.com/js/sdk-loader.js" async></script>
 
     <script type="text/javascript">
@@ -17,6 +19,81 @@
                 client_key: "nvnfhmuvilarv7mzcp8nfz1r", // Your tracking key
             }
         ]);
+
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const form = document.querySelector('#contact_form');
+
+            if (form) {
+                form.addEventListener("submit", function (event) {
+                    event.preventDefault(); // Prevent default form submission
+
+                    const email = document.querySelector('#email_input')?.value.trim();
+                    const fullName = document.querySelector('#name_input')?.value.trim();
+                    const phone = document.querySelector('#telephone_input')?.value.trim();
+                    const isSubscribed = document.querySelector('#subscribe')?.checked;
+
+                    if (!email || !email.includes('@')) {
+                        alert("Please enter a valid email address.");
+                        return;
+                    }
+
+                    const [firstname, ...lastNameParts] = fullName.split(" ");
+                    const lastname = lastNameParts.join(" ") || "";
+
+                    // Identify the user in Brevo
+                    Brevo.push(function () {
+                        Brevo.identify({
+                            identifiers: { email_id: email },
+                            attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone, WHATSAPP: phone }
+                        });
+                    });
+
+
+
+
+                    let event_name = "formSubmitted";
+                    let properties = {
+                        "email": email,
+                        "FIRSTNAME": firstname,
+                        "LASTNAME": lastname,
+                        "phone": phone,
+                        "subscribed": isSubscribed
+                    };
+
+                    let event_data = {
+                        "id": "form:" + Date.now(), // Unique event ID
+                        "data": {
+                            "form_type": "newsletter",
+                            "url": window.location.href
+                        }
+                    };
+
+                    // Track form submission
+                    Brevo.push([
+                        "track",
+                        event_name,  // Correct event name usage
+                        properties,  // Optional user details
+                        event_data   // Optional event metadata
+                    ]);
+
+                    alert("Thank you for subscribing!");
+                    form.reset();
+                });
+            }
+
+            // Track page visit
+            const pageTitle = document.title || "Subscription Form";
+            Brevo.push([
+                "page",
+                pageTitle,
+                {
+                    "ma_title": pageTitle,
+                    "ma_url": window.location.href,
+                    "ma_path": window.location.pathname
+                }
+            ]);
+        });
     </script>
 
 
@@ -76,8 +153,6 @@
             </div>
         </form><!-- // End form -->
     </div><!-- // End #container -->
-
-    <script src="app.js"></script>
 </body>
 
 </html>
