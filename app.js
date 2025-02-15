@@ -55,9 +55,32 @@ const brevoTracker = {
 
 const API_KEY = "{{BREVO_API_KEY}}";
 
+
+
+// Function to clean phone number (remove non-numeric characters)
+function cleanPhoneNumber(phone) {
+    if (!phone) return "";
+
+    // Remove any non-numeric characters
+    let cleanedPhone = phone.replace(/\D/g, "");
+
+    // Ensure no leading "+" (already removed by regex)
+    if (cleanedPhone.startsWith("0")) {
+        console.warn("Phone number starts with 0; consider using a country code.");
+    }
+
+    // Log warning if phone number is suspiciously short
+    if (cleanedPhone.length < 10) {
+        console.warn("Phone number may be too short:", cleanedPhone);
+    }
+
+    return cleanedPhone;
+}
+
 // Function to create a contact
 async function createContact(email, firstname, lastname, phone, isSubscribed) {
     try {
+        const cleanedPhone = cleanPhoneNumber(phone);
         const response = await fetch("https://api.brevo.com/v3/contacts", {
             method: "POST",
             headers: {
@@ -73,8 +96,8 @@ async function createContact(email, firstname, lastname, phone, isSubscribed) {
                 attributes: {
                     FIRSTNAME: firstname,
                     LASTNAME: lastname,
-                    SMS: phone,
-                    WHATSAPP: phone
+                    SMS: cleanedPhone,
+                    WHATSAPP: cleanedPhone
                 }
             })
         });
