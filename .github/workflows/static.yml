@@ -33,6 +33,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Pages
         uses: actions/configure-pages@v5
+      - name: Create config file
+        run: |
+              echo "const config = {" > config.js
+              echo "  API_KEY: '${{ secrets.API_KEY }}'," >> config.js
+              echo "  MA_KEY: '${{ secrets.MA_KEY }}'" >> config.js
+              echo "};" >> config.js
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

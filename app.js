@@ -53,8 +53,10 @@ const brevoTracker = {
     }
 };
 
+const API_KEY = config.API_KEY;
 // API functions
 const brevoAPI = {
+
     updateContact: async function(email, firstname, lastname, phone, isSubscribed) {
         try {
             const response = await fetch('https://api.brevo.com/v3/contacts', {
@@ -62,7 +64,7 @@ const brevoAPI = {
                 headers: {
                     'accept': 'application/json',
                     'content-type': 'application/json',
-                    'api-key': 'YOUR-API-KEY'  // Replace with your actual API key
+                    'api-key': API_KEY  // Replace with your actual API key
                 },
                 body: JSON.stringify({
                     email: email,
