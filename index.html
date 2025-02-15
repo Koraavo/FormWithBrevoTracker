@@ -22,16 +22,18 @@
 
         document.addEventListener("DOMContentLoaded", function () {
             // Add form submission event listener
-            const form = document.querySelector('.formaction'); // Select the form
+            const form = document.querySelector('#contact_form'); // Select the form
 
             form.addEventListener("submit", function (event) {
                 event.preventDefault(); // Prevent default form submission
 
-                // Get the email, firstname, and lastname values from the form
+                // Get the email, firstname, and lastname, phone and subscribed values from the form
                 const email = document.getElementById('email_input').value;
                 const fullName = document.getElementById('name_input').value;
                 const [firstname, ...rest] = fullName.split(" ");
                 const lastname = rest.join(" ") || "";
+                const phone = document.getElementById('telephone_input').value;
+                const subscribe = document.getElementById('subscribe').checked;
 
                 // Validate the email format
                 if (email.includes('@') && email.includes('.')) {
@@ -44,7 +46,9 @@
                             attributes: {
                                 // Optional user attributes for better identification and segmentation
                                 FIRSTNAME: firstname,
-                                LASTNAME: lastname
+                                LASTNAME: lastname,
+                                SMS: phone,
+                                WHATSAPP: phone
                             }
                         });
                     });
@@ -103,11 +107,11 @@
                 <label for="name"></label>
                 <input type="text" placeholder="My number is" name="telephone" id="telephone_input">
             </div>
-            <div class="message">
+            <!-- <div class="message">
                 <label for="message"></label>
                 <textarea name="message" placeholder="I'd like to chat about" id="message_input" cols="30" rows="5"
                     required></textarea>
-            </div>
+            </div> -->
 
             <div class="subscriptionCheckbox">
                 <input type="checkbox" id="subscribe" name="subscribe" value="subscribe">
