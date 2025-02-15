@@ -31,14 +31,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Replace placeholders with secrets
+        run: |
+          sed -i 's/{{BREVO_MA_KEY}}/${{ secrets.BREVO_MA_KEY }}/g' index.html
+          sed -i 's/{{BREVO_API_KEY}}/${{ secrets.BREVO_API_KEY }}/g' app.js
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      - name: Inject BREVO_MA_KEY into HTML
-        run: |
-          # Use sed to replace placeholder {{MA_KEY}} with the value from the BREVO_MA_KEY secret
-          sed -i 's/{{MA_KEY}}/${{ secrets.BREVO_MA_KEY }}/g' index.html
-      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

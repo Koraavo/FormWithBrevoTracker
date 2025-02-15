@@ -53,7 +53,7 @@ const brevoTracker = {
     }
 };
 
-const API_KEY = config.API_KEY;
+const API_KEY = "{{BREVO_API_KEY}}";
 // API functions
 const brevoAPI = {
 
