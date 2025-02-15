@@ -21,57 +21,76 @@
         ]);
 
         document.addEventListener("DOMContentLoaded", function () {
-            // Add form submission event listener
-            const form = document.querySelector('#contact_form'); // Select the form
 
-            form.addEventListener("submit", function (event) {
-                event.preventDefault(); // Prevent default form submission
+            const form = document.querySelector('#contact_form');
 
-                // Get the email, firstname, and lastname, phone and subscribed values from the form
-                const email = document.getElementById('email_input').value;
-                const fullName = document.getElementById('name_input').value;
-                const [firstname, ...rest] = fullName.split(" ");
-                const lastname = rest.join(" ") || "";
-                const phone = document.getElementById('telephone_input').value;
-                const subscribe = document.getElementById('subscribe').checked;
+            if (form) {
+                form.addEventListener("submit", function (event) {
+                    event.preventDefault(); // Prevent default form submission
 
-                // Validate the email format
-                if (email.includes('@') && email.includes('.')) {
+                    const email = document.querySelector('#email_input')?.value.trim();
+                    const fullName = document.querySelector('#name_input')?.value.trim();
+                    const phone = document.querySelector('#telephone_input')?.value.trim();
+                    const isSubscribed = document.querySelector('#subscribe')?.checked;
+
+                    if (!email || !email.includes('@')) {
+                        alert("Please enter a valid email address.");
+                        return;
+                    }
+
+                    const [firstname, ...lastNameParts] = fullName.split(" ");
+                    const lastname = lastNameParts.join(" ") || "";
+
                     // Identify the user in Brevo
                     Brevo.push(function () {
                         Brevo.identify({
-                            identifiers: {
-                                email_id: email // Set the dynamic email
-                            },
-                            attributes: {
-                                // Optional user attributes for better identification and segmentation
-                                FIRSTNAME: firstname,
-                                LASTNAME: lastname,
-                                SMS: phone,
-                                WHATSAPP: phone
-                            }
+                            identifiers: { email_id: email },
+                            attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone, WHATSAPP: phone }
                         });
                     });
 
-                    console.log(`User identified with email: ${email}, First Name: ${firstname}, Last Name: ${lastname}`);
 
-                    // Optional: Display a success message or reset the form
-                    alert("Thank you for subscribing to our newsletter!");
+
+
+                    let event_name = "formSubmitted";
+                    let properties = {
+                        "email": email,
+                        "FIRSTNAME": firstname,
+                        "LASTNAME": lastname,
+                        "phone": phone,
+                        "subscribed": isSubscribed
+                    };
+
+                    let event_data = {
+                        "id": "form:" + Date.now(), // Unique event ID
+                        "data": {
+                            "form_type": "newsletter",
+                            "url": window.location.href
+                        }
+                    };
+
+                    // Track form submission
+                    Brevo.push([
+                        "track",
+                        event_name,  // Correct event name usage
+                        properties,  // Optional user details
+                        event_data   // Optional event metadata
+                    ]);
+
+                    alert("Thank you for subscribing!");
                     form.reset();
-                } else {
-                    alert("Please enter a valid email address.");
-                }
-            });
+                });
+            }
 
-            // Page tracking
+            // Track page visit
             Brevo.push([
                 "page",
-                "homepage", /* mandatory */
+                "homepage",
                 {
                     "ma_title": "Subscription Form",
-                    "ma_url": "https://koraavo.github.io/TigersWithAccessibility/",
-                    "ma_path": "/home"
-                } /* optional */
+                    "ma_url": window.location.href,
+                    "ma_path": window.location.pathname
+                }
             ]);
         });
     </script>
