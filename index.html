@@ -83,10 +83,12 @@
             }
 
             // Track page visit
+            const pageTitle = document.title || "Subscription Form";
             Brevo.push([
                 "page",
+                pageTitle,
                 {
-                    "ma_title": "Subscription Form",
+                    "ma_title": pageTitle,
                     "ma_url": window.location.href,
                     "ma_path": window.location.pathname
                 }
