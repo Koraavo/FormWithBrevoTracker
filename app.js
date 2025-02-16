@@ -1,147 +1,18 @@
-// Brevo tracking functions
-const brevoTracker = {
-    identifyContact: function (email, firstname, lastname, phone) {
-        Brevo.push(function () {
-            Brevo.identify({
-                identifiers: { email_id: email },
-                attributes: {
-                    FIRSTNAME: firstname,
-                    LASTNAME: lastname,
-                    SMS: phone,
-                    WHATSAPP: phone
-                }
-            });
-        });
-    },
-
-    trackFormSubmission: function (email, firstname, lastname, phone, isSubscribed) {
-        const event_name = "formSubmitted";
-        const properties = {
-            email: email,
-            FIRSTNAME: firstname,
-            LASTNAME: lastname,
-            phone: phone,
-            subscribed: isSubscribed
-        };
-        const event_data = {
-            id: "form:" + Date.now(),
-            data: {
-                form_type: "newsletter",
-                url: window.location.href
-            }
-        };
-
-        Brevo.push([
-            "track",
-            event_name,
-            properties,
-            event_data
-        ]);
-    },
-
-    trackPageVisit: function () {
-        const pageTitle = document.title || "Subscription Form";
-        Brevo.push([
-            "page",
-            pageTitle,
-            {
-                ma_title: pageTitle,
-                ma_url: window.location.href,
-                ma_path: window.location.pathname
-            }
-        ]);
-    }
-};
-
 const API_KEY = "{{BREVO_API_KEY}}";
 
-
-
-// Function to clean phone number (remove non-numeric characters)
-function cleanPhoneNumber(phone) {
-    if (!phone) return "";
-
-    // Remove any non-numeric characters
-    let cleanedPhone = phone.replace(/\D/g, "");
-
-    // Ensure no leading "+" (already removed by regex)
-    if (cleanedPhone.startsWith("0")) {
-        console.warn("Phone number starts with 0; consider using a country code.");
+// 1. Initialize everything when DOM is loaded
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("#contact_form");
+    if (form) {
+        form.addEventListener("submit", handleFormSubmission);
     }
 
-    // Log warning if phone number is suspiciously short
-    if (cleanedPhone.length < 10) {
-        console.warn("Phone number may be too short:", cleanedPhone);
-    }
+    // Track initial page visit
+    brevoTracker.trackPageVisit();
+});
 
-    return cleanedPhone;
-}
 
-// Function to create a contact
-async function createContact(email, firstname, lastname, phone, isSubscribed) {
-    try {
-        const cleanedPhone = cleanPhoneNumber(phone);
-        const response = await fetch("https://api.brevo.com/v3/contacts", {
-            method: "POST",
-            headers: {
-                accept: "application/json",
-                "content-type": "application/json",
-                "api-key": API_KEY
-            },
-            body: JSON.stringify({
-                email: email,
-                emailBlacklisted: !isSubscribed, // Default true, false if subscribed
-                updateEnabled: true, // Allow updating if contact exists
-                listIds: isSubscribed ? [37] : [4], // Assign list based on subscription
-                attributes: {
-                    FIRSTNAME: firstname,
-                    LASTNAME: lastname,
-                    SMS: cleanedPhone,
-                    WHATSAPP: cleanedPhone
-                }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
-
-        console.log("Contact successfully created!");
-        return true;
-    } catch (error) {
-        console.error("Error creating contact:", error);
-        return false;
-    }
-}
-
-// Form handling functions
-const formHandler = {
-    validateEmail: function (email) {
-        return email && email.includes("@");
-    },
-
-    parseFullName: function (fullName) {
-        const [firstname, ...lastNameParts] = fullName.split(" ");
-        const lastname = lastNameParts.join(" ") || "";
-        return { firstname, lastname };
-    },
-
-    getFormData: function (form) {
-        return {
-            email: form.querySelector("#email_input")?.value.trim(),
-            fullName: form.querySelector("#name_input")?.value.trim(),
-            phone: form.querySelector("#telephone_input")?.value.trim(),
-            isSubscribed: form.querySelector("#subscribe")?.checked
-        };
-    },
-
-    resetForm: function (form) {
-        form.reset();
-        alert("Thank you for your submission!");
-    }
-};
-
-// Main form submission handler
+// 2. Main Form Submission Handler
 async function handleFormSubmission(event) {
     event.preventDefault();
 
@@ -179,14 +50,132 @@ async function handleFormSubmission(event) {
     }
 }
 
-// Initialize everything when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-    // Set up form submission handler
-    const form = document.querySelector("#contact_form");
-    if (form) {
-        form.addEventListener("submit", handleFormSubmission);
-    }
+// 3. Brevo Tracking Functions
+const brevoTracker = {
+    identifyContact: function (email, firstname, lastname, phone) {
+        Brevo.push(function () {
+            Brevo.identify({
+                identifiers: { email_id: email },
+                attributes: {
+                    FIRSTNAME: firstname,
+                    LASTNAME: lastname,
+                    SMS: phone,
+                    WHATSAPP: phone
+                }
+            });
+        });
+    },
 
-    // Track initial page visit
-    brevoTracker.trackPageVisit();
-});
+    trackFormSubmission: function (email, firstname, lastname, phone, isSubscribed) {
+        const event_name = "formSubmitted";
+        const properties = {
+            email: email,
+            FIRSTNAME: firstname,
+            LASTNAME: lastname,
+            phone: phone,
+            subscribed: isSubscribed
+        };
+        const event_data = {
+            id: "form:" + Date.now(),
+            data: {
+                form_type: "newsletter",
+                url: window.location.href
+            }
+        };
+
+        Brevo.push(["track", event_name, properties, event_data]);
+    },
+
+    trackPageVisit: function () {
+        const pageTitle = document.title || "Subscription Form";
+        Brevo.push([
+            "page",
+            pageTitle,
+            {
+                ma_title: pageTitle,
+                ma_url: window.location.href,
+                ma_path: window.location.pathname
+            }
+        ]);
+    }
+};
+
+// 4. Brevo API Integration
+async function createContact(email, firstname, lastname, phone, isSubscribed) {
+    try {
+        
+        const smsBlacklisted = phone === "";
+        const response = await fetch("https://api.brevo.com/v3/contacts", {
+            method: "POST",
+            headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+                "api-key": API_KEY
+            },
+            body: JSON.stringify({
+                email: email,
+                emailBlacklisted: !isSubscribed, // Default true, false if subscribed
+                smsBlacklisted: smsBlacklisted, // Default true, false if subscribed
+                updateEnabled: true, // Allow updating if contact exists
+                listIds: isSubscribed ? [37] : [4], // Assign list based on subscription
+                attributes: {
+                    FIRSTNAME: firstname,
+                    LASTNAME: lastname,
+                    SMS: phone || null, // Set to null if empty
+                    WHATSAPP: phone || null
+                }
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        console.log("Contact successfully created!");
+        return true;
+    } catch (error) {
+        console.error("Error creating contact:", error);
+        return false;
+    }
+}
+
+// 5. Helper Functions
+const formHandler = {
+    validateEmail: function (email) {
+        return email && email.includes("@");
+    },
+
+    parseFullName: function (fullName) {
+        const [firstname, ...lastNameParts] = fullName.split(" ");
+        const lastname = lastNameParts.join(" ") || "";
+        return { firstname, lastname };
+    },
+
+    cleanPhoneNumber: function (phone) {
+        if (!phone) return "";
+        
+        // Remove all non-numeric characters
+        let cleanedPhone = phone.replace(/\D/g, "");
+
+        // Log a warning if the phone number seems too short
+        if (cleanedPhone.length < 10) {
+            console.warn("Phone number may be too short:", cleanedPhone);
+        }
+
+        return cleanedPhone;
+    },
+
+    getFormData: function (form) {
+        return {
+            email: form.querySelector("#email_input")?.value.trim(),
+            fullName: form.querySelector("#name_input")?.value.trim(),
+            phone: formHandler.cleanPhoneNumber(form.querySelector("#telephone_input")?.value.trim()), 
+            isSubscribed: form.querySelector("#subscribe")?.checked
+        };
+    },
+
+    resetForm: function (form) {
+        form.reset();
+        alert("Thank you for your submission!");
+    }
+};
