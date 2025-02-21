@@ -103,7 +103,7 @@ const brevoTracker = {
 // 4. Brevo API Integration
 async function createContact(email, firstname, lastname, phone, isSubscribed) {
     try {
-        
+        console.log(phone);
         const smsBlacklisted = phone === "";
         const response = await fetch("https://api.brevo.com/v3/contacts", {
             method: "POST",
