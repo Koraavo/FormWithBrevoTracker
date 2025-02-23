@@ -1,4 +1,6 @@
 const API_KEY = "{{BREVO_API_KEY}}";
+const TRANSACTIONAL_TEMPLATE_ID = 116;
+const WEBHOOK_URL = "https://webhookbrevo.kinjalvoraa.workers.dev/";
 
 // 1. Initialize everything when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
@@ -101,11 +103,41 @@ const brevoTracker = {
 };
 
 // 4. Brevo API Integration
-async function createContact(email, firstname, lastname, phone, isSubscribed) {
+async function createContactOrSendEmail(email, firstname, lastname, phone, isSubscribed) {
     try {
-        console.log(phone);
-        const smsBlacklisted = phone === "";
-        const response = await fetch("https://api.brevo.com/v3/contacts", {
+        if (isSubscribed) {
+            // Send a transactional email instead of adding to list 37
+            await sendTransactionalEmail(email, firstname, lastname);
+            console.log("Transactional email sent instead of adding to list 37.");
+        } else {
+            // Add contact to list 4
+            await fetch("https://api.brevo.com/v3/contacts", {
+                method: "POST",
+                headers: {
+                    accept: "application/json",
+                    "content-type": "application/json",
+                    "api-key": API_KEY
+                },
+                body: JSON.stringify({
+                    email,
+                    emailBlacklisted: !isSubscribed,
+                    smsBlacklisted: phone === "",
+                    updateEnabled: true,
+                    listIds: [4],
+                    attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone || null, WHATSAPP: phone || null }
+                })
+            });
+            console.log("Contact added to list 4.");
+        }
+    } catch (error) {
+        console.error("Error creating contact or sending email:", error);
+    }
+}
+
+// 5. Send Transactional Email
+async function sendTransactionalEmail(email, firstname, lastname) {
+    try {
+        const response = await fetch("https://api.brevo.com/v3/smtp/email", {
             method: "POST",
             headers: {
                 accept: "application/json",
@@ -113,17 +145,10 @@ async function createContact(email, firstname, lastname, phone, isSubscribed) {
                 "api-key": API_KEY
             },
             body: JSON.stringify({
-                email: email,
-                emailBlacklisted: !isSubscribed, // Default true, false if subscribed
-                smsBlacklisted: smsBlacklisted, // Default true, false if subscribed
-                updateEnabled: true, // Allow updating if contact exists
-                listIds: isSubscribed ? [37] : [4], // Assign list based on subscription
-                attributes: {
-                    FIRSTNAME: firstname,
-                    LASTNAME: lastname,
-                    SMS: phone || null, // Set to null if empty
-                    WHATSAPP: phone || null
-                }
+                sender: { email: "kinjal.vora@sendinblue.com", name: "Kinjal-Brevo" },
+                to: [{ email: email, name: `${firstname} ${lastname}` }],
+                templateId: TRANSACTIONAL_TEMPLATE_ID,
+                params: { FIRSTNAME: firstname, LASTNAME: lastname }
             })
         });
 
@@ -131,11 +156,53 @@ async function createContact(email, firstname, lastname, phone, isSubscribed) {
             throw new Error(await response.text());
         }
 
-        console.log("Contact successfully created!");
-        return true;
+        console.log("Transactional email sent successfully!");
     } catch (error) {
-        console.error("Error creating contact:", error);
-        return false;
+        console.error("Error sending transactional email:", error);
+    }
+}
+
+// 6. Listen for Webhook Events
+async function listenForWebhookEvents() {
+    try {
+        const response = await fetch(WEBHOOK_URL);
+        const events = await response.json();
+        
+        events.forEach(async (webhookevent) => {
+            if (
+                webhookevent.event === "click" &&
+                webhookevent.email &&
+                webhookevent.tags.includes("DOI") && webhookevent.tags.includes("optin") &&
+                webhookevent.link === "https://koraavo.github.io/TigersWithAccessibility/"
+            ) {
+                await addToList37(webhookevent.email);
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching webhook data:", error);
+    }
+}
+
+// 7. Add Contact to List 37
+async function addToList37(email) {
+    try {
+        await fetch("https://api.brevo.com/v3/contacts", {
+            method: "POST",
+            headers: {
+                accept: "application/json",
+                "content-type": "application/json",
+                "api-key": API_KEY
+            },
+            body: JSON.stringify({
+                email,
+                updateEnabled: true,
+                listIds: [37]
+            })
+        });
+
+        console.log("Contact added to list 37.");
+    } catch (error) {
+        console.error("Error adding contact to list 37:", error);
     }
 }
 
