@@ -1,6 +1,7 @@
 const API_KEY = "{{BREVO_API_KEY}}";
 const TRANSACTIONAL_TEMPLATE_ID = 116;
 const WEBHOOK_URL = "https://webhookbrevo.kinjalvoraa.workers.dev/";
+const SENDER = "kinjal.vora@sendinblue.com";
 
 // 1. Initialize everything when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
@@ -145,7 +146,7 @@ async function sendTransactionalEmail(email, firstname, lastname) {
                 "api-key": API_KEY
             },
             body: JSON.stringify({
-                sender: { email: "kinjal.vora@sendinblue.com", name: "Kinjal-Brevo" },
+                sender: { email: SENDER, name: "Kinjal-Brevo" },
                 to: [{ email: email, name: `${firstname} ${lastname}` }],
                 templateId: TRANSACTIONAL_TEMPLATE_ID,
                 params: { FIRSTNAME: firstname, LASTNAME: lastname }
