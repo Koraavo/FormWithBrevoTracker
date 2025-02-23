@@ -36,7 +36,7 @@ async function handleFormSubmission(event) {
         brevoTracker.identifyContact(formData.email, firstname, lastname, formData.phone);
 
         // Step 2: Create or update contact in Brevo API
-        const success = await createContact(formData.email, firstname, lastname, formData.phone, formData.isSubscribed);
+        const success = await createContactOrSendEmail(formData.email, firstname, lastname, formData.phone, formData.isSubscribed);
 
         if (!success) {
             console.warn("Failed to create/update contact, but continuing with form submission");
