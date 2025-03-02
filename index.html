@@ -8,19 +8,21 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.brevo.com/js/sdk-loader.js" async></script>
 
-    <script type="text/javascript">
-        const maKey = "{{BREVO_MA_KEY}}";  // Placeholder for MA_KEY
-        // Initialize Brevo SDK
-        window.Brevo = window.Brevo || [];
-        Brevo.push([
-            "init",
-            {
-                client_key: maKey, // Your tracking key
-            }
-        ]);
-    </script>
-
-
+    <script>
+        fetch("https://webhookbrevo.kinjalvoraa.workers.dev/get-brevo-key")
+            .then(response => response.json())
+            .then(data => {
+                const maKey = data.key;  // Securely fetched MA Key
+    
+                // Initialize Brevo SDK
+                window.Brevo = window.Brevo || [];
+                Brevo.push([
+                    "init",
+                    { client_key: maKey }
+                ]);
+            })
+            .catch(error => console.error("Error loading Brevo MA Key:", error));
+    </script>    
 </head>
 
 <body>
