@@ -35,8 +35,21 @@ function initializeBrevoTracking() {
 // 3️⃣ Initialize Form Handling
 function initializeFormHandling() {
     const form = document.querySelector("#contact_form");
+    initializeFormHandling();
     if (form) {
         form.addEventListener("submit", handleFormSubmission);
+    }
+}
+
+
+function initializeFormHandling() {
+    const form = document.querySelector("#contact_form");
+    console.log("📌 Found form:", form); // Debugging log
+
+    if (form) {
+        form.addEventListener("submit", handleFormSubmission);
+    } else {
+        console.error("❌ Form not found!");
     }
 }
 
@@ -44,6 +57,8 @@ function initializeFormHandling() {
 async function handleFormSubmission(event) {
     event.preventDefault(); // Prevent form from reloading
     const formData = formHandler.getFormData(event.target);
+    event.stopPropagation(); // Prevent bubbling issues
+    console.log("🚀 Form submission intercepted!");
 
     if (!formHandler.validateEmail(formData.email)) {
         alert("Please enter a valid email address.");
