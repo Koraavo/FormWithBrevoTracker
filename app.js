@@ -4,7 +4,6 @@ const SENDER = "kinjal.vora@sendinblue.com";
 let API_KEY = "";
 let MA_KEY = "";
 
-
 // 1️⃣ Fetch API and MA Keys Securely
 async function fetchKeys() {
     try {
@@ -43,7 +42,7 @@ function initializeFormHandling() {
 
 // 4️⃣ Main Form Submission Handler
 async function handleFormSubmission(event) {
-    event.preventDefault();
+    event.preventDefault(); // Prevent form from reloading
     const formData = formHandler.getFormData(event.target);
 
     if (!formHandler.validateEmail(formData.email)) {
@@ -66,7 +65,6 @@ async function handleFormSubmission(event) {
         alert("There was an error processing your submission. Please try again.");
     }
 }
-
 
 // 5️⃣ Brevo Tracking Functions
 const brevoTracker = {
@@ -93,7 +91,7 @@ async function createContactOrSendEmail(email, firstname, lastname, phone, isSub
             await sendTransactionalEmail(email, firstname, lastname);
             console.log("✅ Transactional email sent instead of adding to list 37.");
         } else {
-            await fetch("https://api.brevo.com/v3/contacts", {
+            const response = await fetch("https://api.brevo.com/v3/contacts", {
                 method: "POST",
                 headers: { accept: "application/json", "content-type": "application/json", "api-key": API_KEY },
                 body: JSON.stringify({
@@ -101,6 +99,7 @@ async function createContactOrSendEmail(email, firstname, lastname, phone, isSub
                     listIds: [4], attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone || null, WHATSAPP: phone || null }
                 })
             });
+            if (!response.ok) throw new Error(await response.text());
             console.log("✅ Contact added to list 4.");
         }
     } catch (error) {
