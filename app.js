@@ -1,163 +1,110 @@
-const TRANSACTIONAL_TEMPLATE_ID = 116;
-const WEBHOOK_URL = "https://webhookbrevo.kinjalvoraa.workers.dev/";
-const SENDER = "kinjal.vora@sendinblue.com";
-let API_KEY = "";
-let MA_KEY = "";
-
-// 1️⃣ Fetch API and MA Keys Securely
-async function fetchKeys() {
-    try {
-        const [apiResponse, maResponse] = await Promise.all([
-            fetch("https://webhookbrevo.kinjalvoraa.workers.dev/get-brevo-key"),
-            fetch("https://webhookbrevo.kinjalvoraa.workers.dev/get-ma-key")
-        ]);
-        
-        const apiData = await apiResponse.json();
-        const maData = await maResponse.json();
-        
-        API_KEY = apiData.key;
-        MA_KEY = maData.key;
-        
-        initializeBrevoTracking();
-        initializeFormHandling();
-    } catch (error) {
-        console.error("❌ Error fetching API or MA key:", error);
-    }
-}
-
-// 2️⃣ Initialize Brevo Tracking with Secure MA Key
-function initializeBrevoTracking() {
-    window.Brevo = window.Brevo || [];
-    Brevo.push(["init", { client_key: MA_KEY }]);
-    brevoTracker.trackPageVisit();
-}
-
-// 3️⃣ Initialize Form Handling
-function initializeFormHandling() {
-    const form = document.querySelector("#contact_form");
-    initializeFormHandling();
-    if (form) {
-        form.addEventListener("submit", handleFormSubmission);
-    }
-}
-
-
-function initializeFormHandling() {
-    const form = document.querySelector("#contact_form");
-    console.log("📌 Found form:", form); // Debugging log
-
-    if (form) {
-        form.addEventListener("submit", handleFormSubmission);
-    } else {
-        console.error("❌ Form not found!");
-    }
-}
-
-// 4️⃣ Main Form Submission Handler
-async function handleFormSubmission(event) {
-    event.preventDefault(); // Prevent form from reloading
-    const formData = formHandler.getFormData(event.target);
-    event.stopPropagation(); // Prevent bubbling issues
-    console.log("🚀 Form submission intercepted!");
-
-    if (!formHandler.validateEmail(formData.email)) {
-        alert("Please enter a valid email address.");
-        return;
-    }
-
-    const { firstname, lastname } = formHandler.parseFullName(formData.fullName);
-
-    try {
-        brevoTracker.identifyContact(formData.email, firstname, lastname, formData.phone);
-        
-        const success = await createContactOrSendEmail(formData.email, firstname, lastname, formData.phone, formData.isSubscribed);
-        if (!success) console.warn("⚠️ Failed to create/update contact");
-
-        brevoTracker.trackFormSubmission(formData.email, firstname, lastname, formData.phone, formData.isSubscribed);
-        formHandler.resetForm(event.target);
-    } catch (error) {
-        console.error("❌ Error in form submission:", error);
-        alert("There was an error processing your submission. Please try again.");
-    }
-}
-
-// 5️⃣ Brevo Tracking Functions
-const brevoTracker = {
-    identifyContact: function (email, firstname, lastname, phone) {
-        Brevo.push(function () {
-            Brevo.identify({
-                identifiers: { email_id: email },
-                attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone, WHATSAPP: phone }
-            });
+export default {
+    async fetch(request, env) {
+      const url = new URL(request.url);
+      const origin = request.headers.get("Origin");
+  
+      const allowedOrigins = [
+        "https://form-with-brevo-tracker.pages.dev",
+        "https://webhookbrevo.kinjalvoraa.workers.dev",
+        "http://127.0.0.1:5500" // Allow local testing
+      ];
+  
+      function jsonResponse(data, status = 200) {
+        return new Response(JSON.stringify(data), {
+          status,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": allowedOrigins.includes(origin) ? origin : "https://form-with-brevo-tracker.pages.dev",
+            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, api-key",
+          }
         });
-    },
-    trackFormSubmission: function (email, firstname, lastname, phone, isSubscribed) {
-        Brevo.push(["track", "formSubmitted", { email, FIRSTNAME: firstname, LASTNAME: lastname, phone, subscribed: isSubscribed }]);
-    },
-    trackPageVisit: function () {
-        Brevo.push(["page", document.title || "Subscription Form", { ma_url: window.location.href }]);
-    }
-};
-
-// 6️⃣ Brevo API Integration
-async function createContactOrSendEmail(email, firstname, lastname, phone, isSubscribed) {
-    try {
-        if (isSubscribed) {
-            await sendTransactionalEmail(email, firstname, lastname);
-            console.log("✅ Transactional email sent instead of adding to list 37.");
-        } else {
-            const response = await fetch("https://api.brevo.com/v3/contacts", {
-                method: "POST",
-                headers: { accept: "application/json", "content-type": "application/json", "api-key": API_KEY },
-                body: JSON.stringify({
-                    email, emailBlacklisted: !isSubscribed, smsBlacklisted: phone === "", updateEnabled: true,
-                    listIds: [4], attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone || null, WHATSAPP: phone || null }
-                })
+      }
+  
+      if (request.method === "OPTIONS") {
+        return jsonResponse({ success: true });
+      }
+  
+      if (url.pathname === "/get-brevo-key") {
+        if (!env.BREVO_API_KEY) return jsonResponse({ error: "API key not found" }, 500);
+        return jsonResponse({ key: env.BREVO_API_KEY });
+      }
+  
+      if (url.pathname === "/get-ma-key") {
+        if (!env.BREVO_MA_KEY) return jsonResponse({ error: "MA key not found" }, 500);
+        return jsonResponse({ key: env.BREVO_MA_KEY });
+      }
+  
+      if (url.pathname === "/submit-form") {
+        if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+        
+        try {
+          const requestData = await request.json();
+          const { email, firstname, lastname, phone, isSubscribed } = requestData;
+  
+          if (!email || !firstname || !lastname) {
+            return jsonResponse({ error: "Missing required fields" }, 400);
+          }
+  
+          let body;
+          if (isSubscribed) {
+            body = JSON.stringify({
+              sender: { email: "kinjal.vora@sendinblue.com", name: "Kinjal-Brevo" },
+              to: [{ email, name: `${firstname} ${lastname}` }],
+              templateId: 116,
+              params: { FIRSTNAME: firstname, LASTNAME: lastname }
             });
-            if (!response.ok) throw new Error(await response.text());
-            console.log("✅ Contact added to list 4.");
-        }
-    } catch (error) {
-        console.error("❌ Error creating contact or sending email:", error);
-    }
-}
-
-// 7️⃣ Send Transactional Email
-async function sendTransactionalEmail(email, firstname, lastname) {
-    try {
-        const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+          } else {
+            body = JSON.stringify({
+              email,
+              emailBlacklisted: !isSubscribed,
+              smsBlacklisted: phone === "",
+              updateEnabled: true,
+              listIds: [4],
+              attributes: { FIRSTNAME: firstname, LASTNAME: lastname, SMS: phone || null, WHATSAPP: phone || null }
+            });
+          }
+  
+          const response = await fetch("https://api.brevo.com/v3/contacts", {
             method: "POST",
-            headers: { accept: "application/json", "content-type": "application/json", "api-key": API_KEY },
-            body: JSON.stringify({
-                sender: { email: SENDER, name: "Kinjal-Brevo" },
-                to: [{ email: email, name: `${firstname} ${lastname}` }],
-                templateId: TRANSACTIONAL_TEMPLATE_ID,
-                params: { FIRSTNAME: firstname, LASTNAME: lastname }
-            })
-        });
-        if (!response.ok) throw new Error(await response.text());
-        console.log("✅ Transactional email sent successfully!");
-    } catch (error) {
-        console.error("❌ Error sending transactional email:", error);
+            headers: {
+              "Content-Type": "application/json",
+              "api-key": env.BREVO_API_KEY,
+            },
+            body,
+          });
+  
+          if (!response.ok) throw new Error(await response.text());
+          return jsonResponse({ success: true, message: "Form submission successful" });
+        } catch (error) {
+          console.error("🚨 Form Submission Error:", error);
+          return jsonResponse({ error: "Form submission failed" }, 500);
+        }
+      }
+  
+      if (url.pathname.startsWith("/api/")) {
+        const apiPath = url.pathname.replace("/api/", "");
+        const apiUrl = `https://api.brevo.com/v3/${apiPath}`;
+  
+        if (!env.BREVO_API_KEY) return jsonResponse({ error: "API key not found" }, 500);
+  
+        try {
+          const response = await fetch(apiUrl, {
+            method: request.method,
+            headers: {
+              "Content-Type": "application/json",
+              "api-key": env.BREVO_API_KEY,
+            },
+            body: request.method !== "GET" ? await request.text() : undefined,
+          });
+  
+          return jsonResponse(await response.json(), response.status);
+        } catch (error) {
+          console.error("🚨 API Proxy Error:", error);
+          return jsonResponse({ error: "API request failed" }, 500);
+        }
+      }
+  
+      return jsonResponse({ error: "Endpoint not found" }, 404);
     }
-}
-
-// 8️⃣ Helper Functions
-const formHandler = {
-    validateEmail: email => email && email.includes("@"),
-    parseFullName: fullName => {
-        const [firstname, ...lastNameParts] = fullName.split(" ");
-        return { firstname, lastname: lastNameParts.join(" ") || "" };
-    },
-    cleanPhoneNumber: phone => phone ? phone.replace(/\D/g, "") : "",
-    getFormData: form => ({
-        email: form.querySelector("#email_input")?.value.trim(),
-        fullName: form.querySelector("#name_input")?.value.trim(),
-        phone: formHandler.cleanPhoneNumber(form.querySelector("#telephone_input")?.value.trim()),
-        isSubscribed: form.querySelector("#subscribe")?.checked
-    }),
-    resetForm: form => { form.reset(); alert("Thank you for your submission!"); }
-};
-
-// 9️⃣ Start Fetching API & MA Keys
-fetchKeys();
+  };  
