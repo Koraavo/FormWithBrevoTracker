@@ -7,22 +7,24 @@
     <title>FormsSubscriptionWithBrevoTracker</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.brevo.com/js/sdk-loader.js" async></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            window.Brevo = window.Brevo || [];
 
-    <!-- <script>
-        fetch("https://webhookbrevo.kinjalvoraa.workers.dev/get-brevo-key")
-            .then(response => response.json())
-            .then(data => {
-                const maKey = data.key;  // Securely fetched MA Key
-    
-                // Initialize Brevo SDK
-                window.Brevo = window.Brevo || [];
-                Brevo.push([
-                    "init",
-                    { client_key: maKey }
-                ]);
-            })
-            .catch(error => console.error("Error loading Brevo MA Key:", error));
-    </script>     -->
+            // Fetch client_key from Cloudflare Worker
+            try {
+                const response = await fetch("https://brevo-form-handler.kinjalvoraa.workers.dev");
+                const { client_key } = await response.json();
+
+                // Initialize Brevo tracker with the retrieved client_key
+                Brevo.push(["init", { client_key }]);
+
+                console.log("Brevo tracker initialized successfully.");
+            } catch (error) {
+                console.error("Error fetching client key:", error);
+            }
+        });
+    </script>
 </head>
 
 <body>
@@ -79,8 +81,6 @@
             </div>
         </form><!-- // End form -->
     </div><!-- // End #container -->
-
-    <script src="app.js"></script>
 </body>
 
 </html>
