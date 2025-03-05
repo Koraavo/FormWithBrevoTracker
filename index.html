@@ -10,21 +10,21 @@
     <script>
         document.addEventListener("DOMContentLoaded", async function () {
             window.Brevo = window.Brevo || [];
-
+    
             // Fetch client_key from Cloudflare Worker
             try {
-                const response = await fetch("https://brevo-form-handler.kinjalvoraa.workers.dev");
+                const response = await fetch("https://brevo-form-handler.kinjalvoraa.workers.dev/get-client-key");
                 const { client_key } = await response.json();
-
+    
                 // Initialize Brevo tracker with the retrieved client_key
                 Brevo.push(["init", { client_key }]);
-
+    
                 console.log("Brevo tracker initialized successfully.");
             } catch (error) {
                 console.error("Error fetching client key:", error);
             }
         });
-    </script>
+    </script>    
 </head>
 
 <body>
